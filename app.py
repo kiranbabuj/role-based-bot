@@ -12,7 +12,7 @@ if "messages" not in st.session_state:
     ]
 
 # Streamlit UI for OpenAI API key input
-st.title("Finance Assistant")
+st.title("Learning Assistant")
 
 # Input API Key
 api_key = st.text_input("Enter your OpenAI API key", type="password")
@@ -36,11 +36,20 @@ if api_key:
         # Add user message to the history
         st.session_state.messages.append(ChatMessage(role="user", content=user_input))
 
-        # Query the LLM
-        response = llm.chat(st.session_state.messages)
+        try:
+            # Query the LLM
+            response = llm.chat(st.session_state.messages)
+            if isinstance(response, list):
+                # If the response is a list of messages, extract the last message's content
+                assistant_response = response[-1].content if len(response) > 0 else "No response"
+            else:
+                # If response is not a list, assume it's a direct response
+                assistant_response = str(response)
 
-        # Add assistant response to the history
-        st.session_state.messages.append(ChatMessage(role="customer", content=response))
+            # Add assistant response to the history
+            st.session_state.messages.append(ChatMessage(role="customer", content=assistant_response))
+        except Exception as e:
+            st.error(f"Error while querying the LLM: {e}")
 
     # Display the conversation history
     st.write("## Conversation History")
