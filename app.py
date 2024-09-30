@@ -1,4 +1,3 @@
-# streamlit_app.py
 import streamlit as st
 import os
 from llama_index.llms.openai import OpenAI
@@ -6,12 +5,14 @@ from llama_index.core.llms import ChatMessage
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.core import Settings, VectorStoreIndex, SimpleDirectoryReader
 
+# Initialize session state to track the conversation history
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        ChatMessage(role="system", content="You are a customer of a bank. Your role is to upskill and train the employees of the bank.")
+    ]
+
 # Streamlit UI for OpenAI API key input
 st.title("Finance Assistant")
-
-# Initialize session state for chat history if it doesn't exist
-if 'messages' not in st.session_state:
-    st.session_state.messages = []
 
 # Input API Key
 api_key = st.text_input("Enter your OpenAI API key", type="password")
@@ -27,34 +28,29 @@ if api_key:
     st.write("Initializing LLM model...")
     llm = OpenAI(model=model_choice)
 
-    # Query interaction using LLM
+    # Chat interaction using LLM
     st.write("Chat with the LLM")
     user_input = st.text_input("Ask your question:")
 
     if user_input:
-        # Append user input to the session state
+        # Add user message to the history
         st.session_state.messages.append(ChatMessage(role="user", content=user_input))
 
-        # Prepare the system message
-        system_message = ChatMessage(role="system", content="You are a finance domain expert")
+        # Query the LLM
+        response = llm.chat(st.session_state.messages)
 
-        # Create the message history (system + previous messages)
-        messages = [system_message] + st.session_state.messages
+        # Add assistant response to the history
+        st.session_state.messages.append(ChatMessage(role="customer", content=response))
 
-        # Get response from the LLM
-        response = llm.chat(messages)
-
-        # Append LLM response to the session state
-        st.session_state.messages.append(ChatMessage(role="assistant", content=response))
-
-    # Display the chat history
-    if st.session_state.messages:
-        st.write("### Chat History")
-        for message in st.session_state.messages:
-            if message.role == "user":
-                st.write(f"**You**: {message.content}")
-            elif message.role == "assistant":
-                st.write(f"**Assistant**: {message.content}")
+    # Display the conversation history
+    st.write("## Conversation History")
+    for msg in st.session_state.messages:
+        if msg.role == "user":
+            st.write(f"**You**: {msg.content}")
+        elif msg.role == "customer":
+            st.write(f"**Customer**: {msg.content}")
+        else:
+            st.write(f"**System**: {msg.content}")
 
     # Embeddings section
     st.write("## Embeddings Section")
